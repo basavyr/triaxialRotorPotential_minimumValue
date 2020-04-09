@@ -68,12 +68,24 @@ int sameData(std::vector<T> &v1, std::vector<T> &v2)
     return 1;
 }
 
+void writeToFile(std::ofstream &outstream, const std::string &name)
+{
+    outstream << name;
+    outstream << "\n";
+}
+
 //check if the data is the same within an antisymmetric array iteration
 template <typename T>
 int sameData_antiSymmetric(std::vector<T> &v1, std::vector<T> &v2)
 {
+    std::cout << "in sameData_antiSymmetric"
+              << "\n";
     if (!sameSize(v1, v2))
+    {
+        std::cout << "arrays are not equal so method will fail"
+                  << "\n";
         return 0;
+    }
     // std::cout << "**************************"
     //           << "\n";
     // std::cout << "IN EQUALITY TEST"
@@ -83,12 +95,24 @@ int sameData_antiSymmetric(std::vector<T> &v1, std::vector<T> &v2)
     double safetyDelta = 0.0001;
     for (auto id = 0; id < v1.size(); ++id)
     {
+        std::cout << "in sameData_antiSymmetric FOR"
+                  << "\n";
         auto reverseIdx = static_cast<int>(v1.size() - 1 - id);
         auto v1Elem = static_cast<double>(v1.at(id));
         auto v2Elem = static_cast<double>(v2.at(reverseIdx));
+
+        std::cout << "arrrays: " << v1.size() << " " << v2.size() << " " << reverseIdx << "\n";
+
+        std::cout << "elements of the arrays"
+                  << "\n";
+        std::cout << v1Elem << " " << v2Elem << "\n";
+
         auto delta = static_cast<double>(abs(v2Elem - v1Elem));
         if (delta > safetyDelta)
+        {
+            std::cout << "CATCH FOR DIFFERENT ELEMENTS" << '\n';
             return 0;
+        }
         // std::cout << id << " " << v1Elem << " " << v2Elem << " " << delta << "\n";
         // if (v1Elem == v2Elem)
         // return 0;
@@ -101,6 +125,8 @@ int sameData_antiSymmetric(std::vector<T> &v1, std::vector<T> &v2)
 //must return the minimum
 MinSetDetails rotorPotential(double theta)
 {
+
+    std::cout << "in main rotor method for theta = " << theta << "\n";
     //*******************************
     //build the MOI ordering
     const double I1 = 20;
@@ -128,6 +154,8 @@ MinSetDetails rotorPotential(double theta)
     //backwards approach
     for (double q = -8.0; q <= 0.0; q += h)
     {
+        std::cout << "in backwards for " << q
+                  << "\n";
         q_backwards.emplace_back(q);
         auto back_V = Potential::VRotor(q, I, j, A1, A2, A3, theta);
         if (back_V != 6969)
@@ -139,6 +167,8 @@ MinSetDetails rotorPotential(double theta)
     //forwards approach
     for (double q = 0.0; q <= 8.0; q += h)
     {
+        std::cout << "in forwards for " << q
+                  << "\n";
         q_forwards.emplace_back(q);
         auto forwardV = Potential::VRotor(q, I, j, A1, A2, A3, theta);
         if (forwardV != 6969)
@@ -159,27 +189,39 @@ MinSetDetails rotorPotential(double theta)
     // }
     //check if the arrays are consistent
 
+    std::cout << "BEFORE checking if the arrays are identical"
+              << "\n";
     int errorChecker = 1;
     if (!sameData_antiSymmetric(V_backwards, V_forwards))
+    {
         errorChecker = 0;
+        std::cout << "POTENTIAL METHOD MUST STOP"
+                  << "\n";
+    }
 
     //if test passed then compute minimum of the Potential VRotor
 
     //hold the minimum value and the minimum position
     MinSetDetails result;
 
+    std::cout << "AFTER checking if the arrays are identical"
+              << "\n";
     Minimum minimum(V_forwards);
     if (minimum.okGo == 1 && errorChecker)
     {
         result.V = minimum.minVal;
         result.minIdx = minimum.minIndex;
-        result.q = q_forwards.at(static_cast<int>(minimum.minIndex));
+        // result.q = q_forwards.at(static_cast<int>(minimum.minIndex));
     }
     else
     {
         result.destroy();
+        std::cout << "potential method indeed stopped"
+                  << "\n";
     }
     return result;
+    std::cout << "end of potential method"
+              << "\n";
 }
 
 void mathPrint(std::vector<double> &xdata, std::vector<double> &array, std::vector<double> &positions)
@@ -198,19 +240,6 @@ void mathPrint(std::vector<double> &xdata, std::vector<double> &array, std::vect
             gout << "{ " << xdata.at(i) << " , " << array.at(i) << "}, ";
         }
     }
-    // gout << "l2= { ";
-    // for (int i = 0; i < positions.size(); ++i)
-    // {
-    //     if (i == positions.size() - 1)
-    //     {
-    //         gout << "{ " << xdata.at(i) << " , " << positions.at(i) << "} };";
-    //         fileline(gout);
-    //     }
-    //     else
-    //     {
-    //         gout << "{ " << xdata.at(i) << " , " << positions.at(i) << "}, ";
-    //     }
-    // }
 }
 
 // void generatePotential(std::vector<double> &Qstack, std::vector<double> &Vstack, std::vector<double> &Posstack)
@@ -240,10 +269,16 @@ void generateRotorPotential(std::vector<double> &qTable, std::vector<double> &th
 {
     for (double theta = -180.0; theta <= 180; theta += 1.0)
     {
+        std::cout << "increased theta... " << theta << "\n";
         thetaTable.emplace_back(theta);
+        std::cout << "in array generator: BEFORE ROTOR METHOD"
+                  << "\n";
         auto result = rotorPotential(theta);
+        std::cout << "in array generator: AFTER ROTOR METHOD"
+                  << "\n";
         if (result.V != 6969 && result.q != 6969 && result.minIdx != 6969)
         {
+            std::cout << "in array generator..." << theta << "\n";
             vTable.emplace_back(result.V);
             IdxTable.emplace_back(result.minIdx);
             qTable.emplace_back(result.q);
@@ -265,10 +300,7 @@ void sandbox()
     std::vector<double> thetaTable;
 
     generateRotorPotential(qTable, thetaTable, vTable, IdxTable);
-    if (sameSize(thetaTable, vTable))
-        std::cout << "all good";
-    newline();
-    mathPrint(thetaTable, vTable, qTable);
+    // mathPrint(thetaTable, vTable, qTable);
 
     // std::vector<double> a, b;
     // for (int i = 0; i <= 11; ++i)
