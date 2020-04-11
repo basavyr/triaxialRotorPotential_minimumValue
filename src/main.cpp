@@ -1,8 +1,8 @@
-// #include <iostream>
+#include <iostream>
 // #include <cmath>
 // #include <vector>
 // #include <ctime>
-// #include <string>
+#include <string>
 // #include <utility>
 // #include <fstream>
 // #include <chrono>
@@ -42,6 +42,23 @@ void arrayPrint(std::vector<T> &v)
         std::cout << v.at(id) << " , ";
     }
     newline();
+}
+
+template <typename T>
+void mathPrintToFile(std::ofstream &outstream, std::vector<T> &array)
+{
+    outstream << "f1= { ";
+    for (auto id = 0; id < array.size(); ++id)
+    {
+        if (id == array.size() - 1)
+        {
+            outstream << array.at(id) << " };";
+        }
+        else
+        {
+            outstream << array.at(id) << " , ";
+        }
+    }
 }
 
 template <typename T>
@@ -248,9 +265,277 @@ void mathPrint(std::vector<double> &xdata, std::vector<double> &array, std::vect
 //         }
 //     }
 //     if ((Vstack.size() != Qstack.size()) && (Qstack.size() != Posstack.size()))
-//         std::cout << "A IESIT O PULA CODUL"
+//         std::cout << "The algorithm did not finish with success"
 //                   << "\n";
 // }
+
+//forward iteration for the minimum potential of V(q) as function of theta
+MinSetDetails Debug_rotorPotential(double theta)
+{
+    const double I = 45.0 / 2.0;
+    const double j = 11.0 / 2.0;
+    const double h = 0.01;
+
+    //define the value for the moments of inertia
+    //the values are not associated to any of the principal axes
+    //they just represent the triplet to be used in value assignment to each of the MOIs
+
+    //*******************
+    const double smallAxis = 20;
+    const double intermediateAxis = 40;
+    const double largeAxis = 100;
+
+    double I1, I2, I3;
+    enum Orderings
+    {
+        i1i2i3,
+        i1i3i2,
+        i2i1i3,
+        i2i3i1,
+        i3i1i2,
+        i3i2i1
+    };
+
+    //****************************
+    //select the ordering for the moments of inertia
+    Orderings order = i2i3i1;
+    //****************************
+
+    std::cout << "The MOI ordering is:"
+              << "\n";
+
+    switch (order)
+    {
+    case i1i2i3:
+        I1 = largeAxis;
+        I2 = intermediateAxis;
+        I3 = smallAxis;
+        std::cout << "I1 > I2 > I3 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+    case i1i3i2:
+        I1 = largeAxis;
+        I2 = smallAxis;
+        I3 = intermediateAxis;
+        std::cout << "I1 > I3 > I2 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+    case i2i1i3:
+        I1 = intermediateAxis;
+        I2 = largeAxis;
+        I3 = smallAxis;
+        std::cout << "I2 > I1 > I3 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+    case i2i3i1:
+        I1 = smallAxis;
+        I2 = largeAxis;
+        I3 = intermediateAxis;
+        std::cout << "I2 > I3 > I1 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+    case i3i1i2:
+        I1 = intermediateAxis;
+        I2 = smallAxis;
+        I3 = largeAxis;
+        std::cout << "I3 > I1 > I2 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+    case i3i2i1:
+        I1 = smallAxis;
+        I2 = intermediateAxis;
+        I3 = largeAxis;
+        std::cout << "I3 > I2 > I1 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+
+    default:
+        std::cout << "Selection for the MOIs ordering"
+                  << "\n";
+        break;
+    }
+    auto A1 = Potential::inertiaFactor(I1);
+    auto A2 = Potential::inertiaFactor(I2);
+    auto A3 = Potential::inertiaFactor(I3);
+
+    std::cout << "The inertia factors are: A1= " << A1 << ", A2= " << A2 << ", A3= " << A3 << "\n";
+
+    //VARIABLE FOR STORING THE RESULTS
+    MinSetDetails result;
+
+    std::vector<double> qTable;
+    std::vector<double> vTable;
+    std::vector<double> vTable_REAL_ONLY;
+    std::cout << "Generating the potential"
+              << "\n";
+    int iteration = 0;
+    for (double q = 0; q <= 8.0; q += h)
+    {
+        auto V = static_cast<double>(Potential::VRotor(q, I, j, A1, A2, A3, theta));
+        // std::cout << iteration << " " << q << " " << V << "\n";
+        qTable.emplace_back(q);
+        vTable.emplace_back(V);
+        iteration++;
+        if (V != 6969)
+            vTable_REAL_ONLY.emplace_back(V);
+    }
+    std::cout << "Generating potential has finished..."
+              << "\n";
+    std::cout << "Size of full potential is: " << vTable.size() << "\n";
+    std::cout << "Size of the real potential is: " << vTable_REAL_ONLY.size() << "\n";
+    //call the Minimum class to calculate the minimum of the array
+    std::cout << "Initialize the Minimum class with the default constructor"
+              << "\n";
+    std::cout << "***************************\n";
+    Minimum mininum(vTable_REAL_ONLY);
+    std::cout << "Exit the Minimum class object"
+              << "\n";
+    std::cout << "***************************\n";
+    if (mininum.okGo == 1)
+    {
+        std::cout << "The position of the minimum coincides with the index of the minimum value in array";
+        newline();
+    }
+
+    std::ofstream gout;
+    gout.open("../sources/potential.dat", std::ios::trunc);
+
+    mathPrintToFile(gout, vTable_REAL_ONLY);
+    result.V = mininum.minVal;
+    result.minIdx = mininum.minIndex;
+    result.q = qTable.at(mininum.minIndex);
+    return result;
+}
+
+//backwards calculation of the minimum potential V(q) for comparison with the standard forwad iteration
+MinSetDetails Debug_rotorPotential_Backwards(double theta)
+{
+    const double I = 45.0 / 2.0;
+    const double j = 11.0 / 2.0;
+    const double h = 0.1;
+
+    //define the value for the moments of inertia
+    //the values are not associated to any of the principal axes
+    //they just represent the triplet to be used in value assignment to each of the MOIs
+
+    //*******************
+    const double smallAxis = 20;
+    const double intermediateAxis = 40;
+    const double largeAxis = 100;
+
+    double I1, I2, I3;
+    enum Orderings
+    {
+        i1i2i3,
+        i1i3i2,
+        i2i1i3,
+        i2i3i1,
+        i3i1i2,
+        i3i2i1
+    };
+
+    //****************************
+    //select the ordering for the moments of inertia
+    Orderings order = i1i2i3;
+    //****************************
+
+    std::cout << "The MOI ordering is:"
+              << "\n";
+
+    switch (order)
+    {
+    case i1i2i3:
+        I1 = largeAxis;
+        I2 = intermediateAxis;
+        I3 = smallAxis;
+        std::cout << "I1 > I2 > I3 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+    case i1i3i2:
+        I1 = largeAxis;
+        I2 = smallAxis;
+        I3 = intermediateAxis;
+        std::cout << "I1 > I3 > I2 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+    case i2i1i3:
+        I1 = intermediateAxis;
+        I2 = largeAxis;
+        I3 = smallAxis;
+        std::cout << "I2 > I1 > I3 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+    case i2i3i1:
+        I1 = smallAxis;
+        I2 = largeAxis;
+        I3 = intermediateAxis;
+        std::cout << "I2 > I3 > I1 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+    case i3i1i2:
+        I1 = intermediateAxis;
+        I2 = smallAxis;
+        I3 = largeAxis;
+        std::cout << "I3 > I1 > I2 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+    case i3i2i1:
+        I1 = smallAxis;
+        I2 = intermediateAxis;
+        I3 = largeAxis;
+        std::cout << "I3 > I2 > I1 => " << I1 << " " << I2 << " " << I3 << "\n";
+        break;
+
+    default:
+        std::cout << "Selection for the MOIs ordering"
+                  << "\n";
+        break;
+    }
+    auto A1 = Potential::inertiaFactor(I1);
+    auto A2 = Potential::inertiaFactor(I2);
+    auto A3 = Potential::inertiaFactor(I3);
+
+    std::cout << "The inertia factors are: A1= " << A1 << ", A2= " << A2 << ", A3= " << A3 << "\n";
+
+    //VARIABLE FOR STORING THE RESULTS
+    MinSetDetails result;
+
+    std::vector<double> qTable_Backwards;
+    std::vector<double> vTable_Backwards;
+    std::vector<double> vTable_REAL_ONLY_Backwards;
+    std::cout << "Generating the potential"
+              << "\n";
+    int iteration = 0;
+    for (double q = -8; q <= 0.0; q += h)
+    {
+        auto V = static_cast<double>(Potential::VRotor(q, I, j, A1, A2, A3, theta));
+        std::cout << iteration << " " << q << " " << V << "\n";
+        qTable_Backwards.emplace_back(q);
+        vTable_Backwards.emplace_back(V);
+        iteration++;
+        if (V != 6969)
+            vTable_REAL_ONLY_Backwards.emplace_back(V);
+    }
+    std::cout << "Generating potential has finished..."
+              << "\n";
+    std::cout << "Size of full potential is: " << vTable_Backwards.size() << "\n";
+    std::cout << "Size of the real potential is: " << vTable_REAL_ONLY_Backwards.size() << "\n";
+    if (vTable_Backwards.size() == vTable_REAL_ONLY_Backwards.size())
+        std::cout << "The MOIs ordering provides real values for V(q)"
+                  << "\n";
+
+    //call the Minimum class to calculate the minimum of the array
+    std::cout << "Initialize the Minimum class with the default constructor"
+              << "\n";
+    std::cout << "***************************\n";
+    Minimum mininum(vTable_REAL_ONLY_Backwards);
+    std::cout << "Exit the Minimum class object"
+              << "\n";
+    std::cout << "***************************\n";
+    if (mininum.okGo == 1)
+    {
+        std::cout << "The position of the minimum coincides with the index of the minimum value in array";
+        newline();
+    }
+
+    std::ofstream gout;
+    gout.open("../sources/potential.dat", std::ios::trunc);
+
+    mathPrintToFile(gout, vTable_REAL_ONLY_Backwards);
+    result.V = mininum.minVal;
+    result.minIdx = mininum.minIndex;
+    result.q = vTable_REAL_ONLY_Backwards.at(result.minIdx);
+    return result;
+}
 
 void generateRotorPotential(std::vector<double> &qTable, std::vector<double> &thetaTable, std::vector<double> &vTable, std::vector<double> &IdxTable)
 {
@@ -271,6 +556,23 @@ void generateRotorPotential(std::vector<double> &qTable, std::vector<double> &th
     }
 }
 
+void fileSandbox(std::ofstream &gout)
+{
+
+    gout << "Started to write to the file"
+         << "\n";
+    gout << "End of stream of the 1ST Sandbox";
+    gout << "\n";
+}
+
+void fileSandbox2(std::ofstream &gout)
+{
+
+    gout << "Started to write to the file"
+         << "\n";
+    gout << "End of stream of the 2ND Sandbox";
+}
+
 //generate the rotor potential within a blind-to-fail test
 
 void sandbox()
@@ -286,7 +588,8 @@ void sandbox()
     std::vector<double> vTable;
     std::vector<double> thetaTable;
 
-    generateRotorPotential(qTable, thetaTable, vTable, IdxTable);
+    // generateRotorPotential(qTable, thetaTable, vTable, IdxTable);
+    auto x = Debug_rotorPotential(179);
     // mathPrint(thetaTable, vTable, qTable);
 
     // std::vector<double> a, b;
@@ -310,8 +613,27 @@ void sandbox()
 
 int main()
 {
+    //prepare the file to write the results on
+
+    //solve the backwards potential
+    // auto x = Debug_rotorPotential(180);
+    // std::cout << "****************"<< "\n";
+    // std::cout << "BACKWARD METHOD\n";
+    // auto x = Debug_rotorPotential_Backwards(180);
+    // std::cout << x.V;
+    // std::cout << "\n";
+
+    //solve the forwards potential
+    std::cout << "****************"
+              << "\n";
+    std::cout << "FORWARD METHOD\n";
+    auto y = Debug_rotorPotential(180);
+    std::cout << y.V << " " << y.minIdx << " " << y.q << "\n";
+    std::cout << "\n";
+    std::cout << "****************"
+              << "\n";
+
     std::vector<double> potential;
     std::vector<double> angles;
     std::vector<double> minpositions;
-    sandbox();
 }
