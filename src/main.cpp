@@ -377,6 +377,12 @@ MinSetDetails Debug_rotorPotential(double theta)
               << "\n";
     std::cout << "Size of full potential is: " << vTable.size() << "\n";
     std::cout << "Size of the real potential is: " << vTable_REAL_ONLY.size() << "\n";
+
+    //printing the potential into a file for Mathematica plotting.
+    // std::ofstream gout;
+    // gout.open("../sources/potential.dat", std::ios::trunc);
+    // mathPrintToFile(gout, vTable_REAL_ONLY);
+
     //call the Minimum class to calculate the minimum of the array
     std::cout << "Initialize the Minimum class with the default constructor"
               << "\n";
@@ -389,15 +395,15 @@ MinSetDetails Debug_rotorPotential(double theta)
     {
         std::cout << "The position of the minimum coincides with the index of the minimum value in array";
         newline();
+        result.V = mininum.minVal;
+        result.minIdx = mininum.minIndex;
+        result.q = qTable.at(mininum.minIndex);
+    }
+    else
+    {
+        result.destroy();
     }
 
-    std::ofstream gout;
-    gout.open("../sources/potential.dat", std::ios::trunc);
-
-    mathPrintToFile(gout, vTable_REAL_ONLY);
-    result.V = mininum.minVal;
-    result.minIdx = mininum.minIndex;
-    result.q = qTable.at(mininum.minIndex);
     return result;
 }
 
@@ -611,6 +617,38 @@ void sandbox()
     // newline();
 }
 
+void generatePotentialFromThetaValues_Debug(std::vector<double> &qTable, std::vector<double> &IdxTable, std::vector<double> &vTable)
+{
+    size_t qSize = qTable.size();
+    size_t idxSize = IdxTable.size();
+    size_t vSize = vTable.size();
+    if (qSize && idxSize && vSize)
+    {
+        std::cout << "The arrays are not empty!"
+                  << "\n";
+        std::cout << " No further computations can be performed"
+                  << "\n";
+    }
+    else
+    {
+        for (int theta = -180; theta <= 180; theta++)
+        {
+            //calculate the result of the potential (forward approach) for the corresponding value of theta
+            //method return the minimum of V, its index and correspnding q
+            auto currentPotential = Debug_rotorPotential(static_cast<double>(theta));
+            qTable.emplace_back(currentPotential.q);
+            IdxTable.emplace_back(currentPotential.minIdx);
+            vTable.emplace_back(currentPotential.V);
+            if (currentPotential.V == 6969)
+            {
+                std::cout << "Potential calculus failed for theta= " << theta << "\n";
+                std::cout << "The MOI ordering produces non-physical solutions for the potential terms...";
+                newline();
+            }
+        }
+    }
+}
+
 int main()
 {
     //prepare the file to write the results on
@@ -623,17 +661,28 @@ int main()
     // std::cout << x.V;
     // std::cout << "\n";
 
-    //solve the forwards potential
-    std::cout << "****************"
-              << "\n";
-    std::cout << "FORWARD METHOD\n";
-    auto y = Debug_rotorPotential(180);
-    std::cout << y.V << " " << y.minIdx << " " << y.q << "\n";
-    std::cout << "\n";
-    std::cout << "****************"
-              << "\n";
-
     std::vector<double> potential;
-    std::vector<double> angles;
+    std::vector<double> coordinates;
     std::vector<double> minpositions;
+    std::cout << "*********************";
+    newline();
+    std::cout << "Actual calculations for entire theta interval";
+    newline();
+    generatePotentialFromThetaValues_Debug(coordinates, minpositions, potential);
+    std::cout << "*********************";
+    newline();
+
+    std::ofstream gout;
+    gout.open("../sources/potential.dat", std::ios::trunc);
+    mathPrintToFile(gout,coordinates);
+
+    //solve the forwards potential
+    // std::cout << "****************"
+    //           << "\n";
+    // std::cout << "FORWARD METHOD\n";
+    // // auto y = Debug_rotorPotential(180);
+    // std::cout << y.V << " " << y.minIdx << " " << y.q << "\n";
+    // std::cout << "\n";
+    // std::cout << "****************"
+    //           << "\n";
 }

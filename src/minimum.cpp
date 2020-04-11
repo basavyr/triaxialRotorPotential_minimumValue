@@ -79,5 +79,10 @@ int Minimum::checkConsistency(std::vector<double> &source)
             return 1;
         }
     }
+    else
+    {
+        std::cout << "Array is empty, so no minimum calculations can be made by the class...";
+        std::cout << "\n";
+    }
     return 0;
 }
