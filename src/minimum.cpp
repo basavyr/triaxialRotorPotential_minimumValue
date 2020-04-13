@@ -73,7 +73,7 @@ int Minimum::checkConsistency(std::vector<double> &source)
             //backwards
             auto q_Calculated_Back = -8.0 + minIndex * 0.1;
             //forwards
-            auto q_Calculated_Forwards = 0.0 + minIndex * 0.1;
+            auto q_Calculated_Forwards = 0.0 + minIndex * 0.01;
             // std::cout << "calculated q from position of minIdx is " << q_Calculated_Back << "\n";
             std::cout << "calculated q from position of minIdx is" << q_Calculated_Forwards << "\n";
             return 1;

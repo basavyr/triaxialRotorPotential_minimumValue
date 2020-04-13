@@ -273,7 +273,7 @@ void mathPrint(std::vector<double> &xdata, std::vector<double> &array, std::vect
 MinSetDetails Debug_rotorPotential(double theta)
 {
     const double I = 45.0 / 2.0;
-    const double j = 11.0 / 2.0;
+    const double j = 13.0 / 2.0;
     const double h = 0.01;
 
     //define the value for the moments of inertia
@@ -631,7 +631,7 @@ void generatePotentialFromThetaValues_Debug(std::vector<double> &qTable, std::ve
     }
     else
     {
-        for (int theta = -180; theta <= 180; theta++)
+        for (int theta = 30; theta <= 30; theta++)
         {
             //calculate the result of the potential (forward approach) for the corresponding value of theta
             //method return the minimum of V, its index and correspnding q
@@ -674,7 +674,7 @@ int main()
 
     std::ofstream gout;
     gout.open("../sources/potential.dat", std::ios::trunc);
-    mathPrintToFile(gout,coordinates);
+    mathPrintToFile(gout, coordinates);
 
     //solve the forwards potential
     // std::cout << "****************"
